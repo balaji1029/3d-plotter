@@ -1,0 +1,56 @@
+cmake_minimum_required(VERSION 3.16)
+project(plotter_course LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug CACHE STRING "" FORCE)
+endif()
+
+add_compile_options(-Wall -Wextra -Wpedantic)
+
+option(USE_ASAN "Enable AddressSanitizer + UBSan" OFF)
+if(USE_ASAN)
+    add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=address,undefined)
+endif()
+
+find_package(OpenGL REQUIRED)
+find_package(glfw3 QUIET)
+find_package(GLEW QUIET)
+
+# Some Linux distros ship GLFW/GLEW only via pkg-config — fall back to that.
+if(NOT glfw3_FOUND OR NOT GLEW_FOUND)
+    find_package(PkgConfig)
+    if(PkgConfig_FOUND)
+        if(NOT glfw3_FOUND)
+            pkg_check_modules(GLFW3_PC IMPORTED_TARGET glfw3)
+            if(GLFW3_PC_FOUND)
+                add_library(glfw ALIAS PkgConfig::GLFW3_PC)
+                set(glfw3_FOUND TRUE)
+            endif()
+        endif()
+        if(NOT GLEW_FOUND)
+            pkg_check_modules(GLEW_PC IMPORTED_TARGET glew)
+            if(GLEW_PC_FOUND)
+                add_library(GLEW::GLEW ALIAS PkgConfig::GLEW_PC)
+                set(GLEW_FOUND TRUE)
+            endif()
+        endif()
+    endif()
+endif()
+
+# Each week is a self-contained subdirectory.
+add_subdirectory(week01_cpp)
+
+if(glfw3_FOUND AND GLEW_FOUND)
+    add_subdirectory(common)
+    add_subdirectory(week02_triangle)
+    add_subdirectory(week03_cube)
+    add_subdirectory(week04_rubiks)
+else()
+    message(WARNING "GLFW or GLEW not found — skipping week02/03/04 graphics targets.")
+endif()
